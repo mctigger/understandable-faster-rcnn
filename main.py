@@ -34,7 +34,7 @@ if __name__ == "__main__":
     faster_rcnn = FasterRCNN(num_classes=3, anchor_boxes=anchor_boxes)
 
     dataset = Dataset(transforms.Compose([transforms.ToTensor()]))
-    dataloader = utils.data.DataLoader(dataset, batch_size=32, num_workers=12, shuffle=True)
+    dataloader = utils.data.DataLoader(dataset, batch_size=128, num_workers=12, shuffle=True)
 
     params = [param for param in faster_rcnn.parameters() if param.requires_grad]
     optimizer = optim.Adam(params, lr=1e-4, weight_decay=1e-4)
@@ -44,7 +44,7 @@ if __name__ == "__main__":
         faster_rcnn
     )).cuda()
 
-    for epoch in range(5):
+    for epoch in range(12):
         losses = []
         rpn_cls_losses = []
         rpn_reg_losses = []

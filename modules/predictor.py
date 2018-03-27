@@ -15,8 +15,8 @@ class FasterRCNNPredictor(nn.Module):
     def forward(self, img, img_id):
         rpn_reg, rpn_cls, nms_reg, nms_cls, rcnn_reg, rcnn_cls, anchors = self.faster_rcnn(img, img_id)
 
-        nms_reg, nms_cls = nms_reg.data.cpu(), nms_cls.data.cpu()
-        rcnn_reg, rcnn_cls = rcnn_reg.data.cpu(), rcnn_cls.data.cpu()
+        nms_reg, nms_cls = nms_reg.data, nms_cls.data
+        rcnn_reg, rcnn_cls = rcnn_reg.data, rcnn_cls.data
 
         nms_reg_rounded = torch.round(nms_reg / self.faster_rcnn.reduction) * self.faster_rcnn.reduction
 
@@ -32,5 +32,11 @@ class FasterRCNNPredictor(nn.Module):
         rcnn_reg[:, :, left] = rcnn_reg[:, :, left] + nms_reg_rounded[:, :, left]
         rcnn_reg[:, :, bottom] = rcnn_reg[:, :, bottom] + nms_reg_rounded[:, :, bottom]
         rcnn_reg[:, :, right] = rcnn_reg[:, :, right] + nms_reg_rounded[:, :, right]
+
+
+        print(nms_reg.size())
+        print(nms_cls.size())
+        print(rcnn_reg.size())
+        print(rcnn_cls.size())
 
         return nms_reg, nms_cls, rcnn_reg, rcnn_cls
