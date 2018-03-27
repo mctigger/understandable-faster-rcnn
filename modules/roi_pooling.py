@@ -1,7 +1,7 @@
 import torch
 from torch import nn as nn
 
-from roi_pooling.modules.roi_pool import _RoIPooling
+from cuda.roi_pooling.modules.roi_pool import _RoIPooling
 
 
 class RoIPooling(nn.Module):
