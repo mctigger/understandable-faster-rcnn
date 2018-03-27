@@ -51,7 +51,7 @@ class Dataset(data.Dataset):
 
                 img[rr, cc, :] = color_map[cls]
                 bboxes.append([int(top), int(left), int(bottom), int(right)])
-                classes.append(cls)
+                classes.append(int(cls))
 
                 break
 
@@ -64,4 +64,7 @@ class Dataset(data.Dataset):
 
         img = self.transform(img)
 
-        return img, torch.FloatTensor(bboxes), torch.LongTensor(classes)
+        bboxes = torch.FloatTensor(bboxes)
+        classes = torch.LongTensor(classes)
+
+        return img, bboxes, classes
