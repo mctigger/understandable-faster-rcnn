@@ -1,4 +1,7 @@
 from __future__ import print_function
+
+# Stolen from https://github.com/jwyang/faster-rcnn.pytorch
+
 # --------------------------------------------------------
 # Fast R-CNN
 # Copyright (c) 2015 Microsoft
