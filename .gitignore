@@ -4,3 +4,5 @@
 /data
 /roi_pooling
 **/__pycache__
+/cuda/roi_pooling/_ext
+/cuda/roi_pooling/src/*.cu.o
