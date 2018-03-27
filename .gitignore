@@ -1,0 +1,6 @@
+/.idea
+/.ipynb_checkpoints
+
+/data
+/roi_pooling
+**/__pycache__
