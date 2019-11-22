@@ -23,9 +23,6 @@ class FasterRCNNTrainer(nn.Module):
 
         rpn_cls_loss, rpn_reg_loss = self.rpn_trainer(rpn_reg, rpn_cls, anchors, bboxes)
         rcnn_cls_loss, rcnn_reg_loss, accuracy = self.rcnn_trainer(nms_reg, nms_cls, rcnn_reg, rcnn_cls, bboxes, classes)
-        rcnn_reg_loss = autograd.Variable(rpn_reg.new([0]))
-        rcnn_cls_loss = autograd.Variable(rpn_reg.new([0]))
-        accuracy = autograd.Variable(rpn_reg.new([0]))
 
         return rpn_cls_loss, rpn_reg_loss, rcnn_cls_loss, rcnn_reg_loss, accuracy
 
@@ -39,19 +36,13 @@ class RCNNTrainer(nn.Module):
         self.cls_criterion = nn.CrossEntropyLoss()
         self.accuracy = CategoricalAccuracy()
 
-    def forward(self, nms_reg, nms_cls, rcnn_reg, rcnn_cls, bboxes, classes):
-        batch_size = bboxes.size()[0]
-        num_targets = bboxes.size()[1]
-        num_reg = rcnn_reg.size()[1]
-        num_classes = rcnn_cls.size()[-1]
+        self.rois_per_image = 64
 
-        reg_expanded = torch.unsqueeze(rcnn_reg, dim=1).expand(
-            batch_size,
-            num_targets,
-            num_reg,
-            4
-        )
-        reg_expanded = reg_expanded.contiguous().view(-1, 4)
+    def forward(self, nms_reg, nms_cls, rcnn_reg, rcnn_cls, bboxes, classes):
+        batch_size = bboxes.shape[0]
+        num_targets = bboxes.shape[1]
+        num_reg = rcnn_reg.shape[1]
+        num_classes = rcnn_cls.shape[-1]
 
         nms_reg_expanded = torch.unsqueeze(nms_reg, dim=1).expand(
             batch_size,
@@ -69,21 +60,6 @@ class RCNNTrainer(nn.Module):
         )
         bboxes_expanded = bboxes_expanded.contiguous().view(-1, 4)
 
-        rcnn_cls_expanded = torch.unsqueeze(rcnn_cls, dim=1).expand(
-            batch_size,
-            num_targets,
-            num_reg,
-            num_classes
-        )
-        rcnn_cls_expanded = rcnn_cls_expanded.contiguous().view(-1, num_classes)
-
-        classes_expanded = torch.unsqueeze(classes, dim=2).expand(
-            batch_size,
-            num_targets,
-            num_reg
-        )
-        classes_expanded = classes_expanded.contiguous().view(-1)
-
         # Calculate IoU
         iou = helper.calculate_iou(nms_reg_expanded, bboxes_expanded.float())
         iou = iou.view(
@@ -92,53 +68,44 @@ class RCNNTrainer(nn.Module):
             num_reg
         )
 
-        sorted_iou, indices = torch.sort(iou, dim=1)
-        indices_expanded = torch.unsqueeze(indices, dim=-1).expand(-1, -1, -1, 4)
-        indices_expanded_cls = torch.unsqueeze(indices, dim=-1).expand(-1, -1, -1, num_classes)
+        iou, indices = torch.max(iou, dim=1)
 
-        max_reg = torch.gather(reg_expanded.view(batch_size, num_targets, num_reg, 4), 1, indices_expanded)[:, -1, :, :]
-        max_bboxes = torch.gather(bboxes_expanded.view(batch_size, num_targets, num_reg, 4), 1, indices_expanded)[:, -1, :, :]
+        # Take highest IoU-overlap target for each RoI
+        mask_positive = (iou > 0.5).view(-1)
+        mask_negative = (iou <= 0.5).view(-1)
 
-        max_rcnn_cls = torch.gather(rcnn_cls_expanded.view(batch_size, num_targets, num_reg, num_classes), 1, indices_expanded_cls)[:, -1, :, :]
-        max_classes = torch.gather(classes_expanded.view(batch_size, num_targets, num_reg), 1, indices)[:, -1, :]
+        reg_loss = iou.new([0])
+        cls_loss = iou.new([0])
+        accuracy = iou.new([0])
 
-        max_iou = sorted_iou[:, -1, :]
+        rcnn_cls_sampled = torch.cat([
+            rcnn_cls.view(-1, num_classes)[mask_positive, :][:self.rois_per_image*batch_size * 1 // 4],
+            rcnn_cls.view(-1, num_classes)[mask_negative, :][:self.rois_per_image*batch_size * 3 // 4]
+        ], dim=0)
 
-        mask_positive = max_iou > 0.7
+        classes_sampled = torch.cat([
+            torch.gather(classes, 1, indices).view(-1)[mask_positive][:self.rois_per_image*batch_size * 1 // 4],
+            torch.zeros(self.rois_per_image*batch_size * 3 // 4, dtype=torch.long).to(classes.device)
+        ], dim=0)
 
-        reg_mask = torch.unsqueeze(mask_positive, dim=2).expand(-1, -1, 4)
-        cls_mask = torch.unsqueeze(mask_positive, dim=2).expand(-1, -1, num_classes)
+        cls_loss += self.cls_criterion(rcnn_cls_sampled, classes_sampled)
 
-        masked_reg = max_reg[reg_mask].view(-1, 4)
-        masked_bboxes = max_bboxes[reg_mask].view(-1, 4).float()
-
-        reg_loss = autograd.Variable(masked_reg.new([0]))
-        cls_loss = autograd.Variable(masked_reg.new([0]))
-        accuracy = autograd.Variable(masked_reg.new([0]))
-
+        accuracy += self.accuracy(rcnn_cls_sampled, classes_sampled)
+        
         if len(mask_positive.nonzero()) > 0:
-            max_classes = max_classes[mask_positive].contiguous().view(-1)
-            max_rcnn_cls = max_rcnn_cls[cls_mask].contiguous().view(-1, num_classes)
+            masked_bboxes = torch.gather(bboxes, 1, indices.unsqueeze(2).repeat(1, 1, 4)).view(-1, 4)[mask_positive, :][:self.rois_per_image*batch_size * 1 // 4]
+            masked_reg = rcnn_reg.view(-1, 4)[mask_positive, :][:self.rois_per_image*batch_size * 1 // 4]
+            masked_nms_reg = nms_reg.view(-1, 4)[mask_positive, :][:self.rois_per_image*batch_size * 1 // 4]
 
-            cls_loss += self.cls_criterion(
-                max_rcnn_cls,
-                max_classes
-            )
+            rounded_masked_bboxes = torch.round(masked_nms_reg * self.reduction) // self.reduction
 
-            accuracy += self.accuracy(
-                max_rcnn_cls,
-                max_classes
-            )
+            roi_height = torch.abs(rounded_masked_bboxes[:, bottom] - rounded_masked_bboxes[:, top])
+            roi_width = torch.abs(rounded_masked_bboxes[:, right] - rounded_masked_bboxes[:, left])
 
-            rounded_masked_bboxes = torch.round(masked_bboxes / self.reduction) * self.reduction
-
-            nms_height = rounded_masked_bboxes[:, bottom] - rounded_masked_bboxes[:, top]
-            nms_width = rounded_masked_bboxes[:, right] - rounded_masked_bboxes[:, left]
-
-            reg_loss += self.reg_criterion(masked_reg[:, top], (masked_bboxes[:, top] - rounded_masked_bboxes[:, top]) / nms_height)
-            reg_loss += self.reg_criterion(masked_reg[:, left], (masked_bboxes[:, left] - rounded_masked_bboxes[:, left]) / nms_width)
-            reg_loss += self.reg_criterion(masked_reg[:, bottom], (masked_bboxes[:, bottom] - rounded_masked_bboxes[:, bottom]) / nms_height)
-            reg_loss += self.reg_criterion(masked_reg[:, right], (masked_bboxes[:, right] - rounded_masked_bboxes[:, right]) / nms_width)
+            reg_loss += self.reg_criterion(masked_reg[:, top], (masked_bboxes[:, top] - rounded_masked_bboxes[:, top]) / roi_height)
+            reg_loss += self.reg_criterion(masked_reg[:, left], (masked_bboxes[:, left] - rounded_masked_bboxes[:, left]) / roi_width)
+            reg_loss += self.reg_criterion(masked_reg[:, bottom], (masked_bboxes[:, bottom] - rounded_masked_bboxes[:, bottom]) / roi_height)
+            reg_loss += self.reg_criterion(masked_reg[:, right], (masked_bboxes[:, right] - rounded_masked_bboxes[:, right]) / roi_width)
 
         return cls_loss, reg_loss, accuracy
 
@@ -180,8 +147,8 @@ class RPNTrainer(nn.Module):
 
         anchors = torch.unsqueeze(anchors, dim=0).expand(batch_size, -1, -1)
 
-        mask_positive = max_iou > 0.5
-        mask_negative = max_iou < 0.5
+        mask_positive = (max_iou > 0.5)[:128]
+        mask_negative = (max_iou <= 0.5)[:256 - len(mask_positive)]
         anchor_cls_positive = torch.unsqueeze(mask_positive, dim=2).expand(-1, -1, 4)
 
         masked_anchor = anchors[anchor_cls_positive].view(-1, 4)
@@ -189,13 +156,14 @@ class RPNTrainer(nn.Module):
         masked_reg = reg[anchor_cls_positive.cuda()].view(-1, 4)
 
         # Loss
-        cls_loss = autograd.Variable(masked_reg.new([0]))
-        reg_loss = autograd.Variable(masked_reg.new([0]))
+        cls_loss = masked_reg.new([0])
+        reg_loss = masked_reg.new([0])
         if anchor_cls_positive.nonzero().size()[0] > 0:
             reg_loss += self.reg_criterion(masked_reg[:, 0], (masked_targets[:, 0] - masked_anchor[:, 0]).float())
             reg_loss += self.reg_criterion(masked_reg[:, 1], (masked_targets[:, 1] - masked_anchor[:, 1]).float())
             reg_loss += self.reg_criterion(masked_reg[:, 2], (masked_targets[:, 2] - masked_anchor[:, 2]).float())
             reg_loss += self.reg_criterion(masked_reg[:, 3], (masked_targets[:, 3] - masked_anchor[:, 3]).float())
+
 
         cls = torch.cat([
             cls[mask_positive],
@@ -209,4 +177,4 @@ class RPNTrainer(nn.Module):
 
         cls_loss += self.cls_criterion(cls, anchor_cls.float())
 
-        return cls_loss, reg_loss / num_anchors
+        return cls_loss, reg_loss / 4

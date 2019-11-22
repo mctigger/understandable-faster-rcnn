@@ -1,13 +1,15 @@
 import torch
 from torch import nn as nn
+from torch.nn import functional as F
+from torchvision.ops import RoIPool, batched_nms, nms
 
 from modules.anchor_generator import AnchorGenerator
 from modules.cnn_base import CNN
-from modules.non_maximum_suppression import NonMaximumSuppression
 from modules.rcnn import RCNN
-from modules.roi_pooling import RoIPooling
 from modules.rpn import RPN
 from modules.sliding_window import SlidingWindow
+
+import timy
 
 
 class FasterRCNN(nn.Module):
@@ -15,14 +17,15 @@ class FasterRCNN(nn.Module):
         super(FasterRCNN, self).__init__()
         fm_channels = 2048 // 2
         window_size = 3
-        self.reduction = 16
+        self.reduction = 1/16
+        self.n_proposals = 300
+
         self.cnn = CNN()
         self.rpn = RPN(fm_channels, len(anchor_boxes), window_size)
         self.rcnn = RCNN(fm_channels, num_classes)
         self.sliding_window = SlidingWindow(window_size, stride=1)
-        self.nms = NonMaximumSuppression(iou_threshold=0.3, top=20)
         self.agn = AnchorGenerator(anchor_boxes, window_size)
-        self.roi_pooling = RoIPooling(reduction=self.reduction)
+        self.roi_pooling = RoIPool(output_size=(7, 7), spatial_scale=self.reduction)
 
     def forward(self, img, img_id):
         # 1. Apply CNN base for feature extraction
@@ -48,17 +51,42 @@ class FasterRCNN(nn.Module):
         anchors = torch.unsqueeze(anchors, dim=0).expand_as(rpn_reg)
 
         # 4. Apply Non-Maximum-Suppression
-        nms_reg, nms_cls = self.nms(rpn_reg + anchors, rpn_cls)
+        rpn_reg_absolute = (rpn_reg + anchors)
+
+        nms_reg = []
+        nms_reg_rounded = []
+        nms_cls = []
+        for b in range(batch_size):
+            b_rpn_reg_absolute = rpn_reg_absolute[b]
+            b_rpn_cls = rpn_cls[b]
+            
+            # NMS for RPN for all bboxes with IoU overlap > 0.7
+            keep = nms(b_rpn_reg_absolute, torch.sigmoid(b_rpn_cls), 0.7)
+
+            r = b_rpn_reg_absolute[keep][:self.n_proposals]
+            c = b_rpn_cls[keep][:self.n_proposals]
+
+            c_sorted, c_indices = torch.sort(b_rpn_cls, descending=True)
+            r_sorted = b_rpn_reg_absolute[c_indices]
+
+            c_sorted = c_sorted[:max(0, self.n_proposals - len(c))]
+            r_sorted = r_sorted[:max(0, self.n_proposals - len(c))]
+
+            nms_reg.append(torch.cat([r, r_sorted], 0)[:, [1, 0, 3, 2]])
+            nms_reg_rounded.append(torch.round(torch.cat([r, r_sorted], 0)[:, [1, 0, 3, 2]] * self.reduction) / self.reduction)
+            nms_cls.append(torch.cat([c, c_sorted], 0))
 
         # 5. Apply Region of Interest-Pooling
-        roi_pooled = self.roi_pooling(fm, img_id, nms_reg)
+        roi_pooled = self.roi_pooling(fm, nms_reg_rounded)
+
         # 6. Apply the RCNN for bbox regression and classification
         rcnn_reg, rcnn_cls = self.rcnn(roi_pooled)
-
-        # Restore tensor sizes to (batch_size, num_predictions, ...)
-        rcnn_reg = rcnn_reg.view(batch_size, -1, 4)
-        rcnn_cls = rcnn_cls.view(batch_size, -1, rcnn_cls.size()[-1])
-
         anchors = self.agn(img, fm)
+
+        rcnn_reg = rcnn_reg.view(batch_size, -1, rcnn_reg.shape[1])
+        rcnn_cls = rcnn_cls.view(batch_size, -1, rcnn_cls.shape[1])
+
+        nms_reg = torch.stack(nms_reg, 0)[:, :, [1, 0, 3, 2]]
+        nms_cls = torch.stack(nms_cls, 0)
 
         return rpn_reg, rpn_cls, nms_reg, nms_cls, rcnn_reg, rcnn_cls, anchors

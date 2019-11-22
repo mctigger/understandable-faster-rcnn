@@ -18,23 +18,21 @@ left = 1
 bottom = 2
 right = 3
 
-if __name__ == "__main__":
+def train():
     baseline_boxes = [
         (1, 1),
         (2, 1),
-        (1, 2),
-        (1, 1.5),
-        (1.5, 1)
+        (1, 2)
     ]
 
-    scales = [32, 64, 128, 256]
+    scales = [32, 64, 128]
 
     anchor_boxes = [(bbox[0] * scale, bbox[1] * scale) for bbox, scale in itertools.product(baseline_boxes, scales)]
 
     faster_rcnn = FasterRCNN(num_classes=3, anchor_boxes=anchor_boxes)
 
     dataset = Dataset(transforms.Compose([transforms.ToTensor()]))
-    dataloader = utils.data.DataLoader(dataset, batch_size=128, num_workers=12, shuffle=True)
+    dataloader = utils.data.DataLoader(dataset, batch_size=4, num_workers=12, shuffle=True)
 
     params = [param for param in faster_rcnn.parameters() if param.requires_grad]
     optimizer = optim.Adam(params, lr=1e-4, weight_decay=1e-4)
@@ -44,7 +42,7 @@ if __name__ == "__main__":
         faster_rcnn
     )).cuda()
 
-    for epoch in range(12):
+    for epoch in range(10):
         losses = []
         rpn_cls_losses = []
         rpn_reg_losses = []
@@ -52,18 +50,17 @@ if __name__ == "__main__":
         rcnn_reg_losses = []
         accuracy = []
 
-        scheduler.step()
         with tqdm(total=len(dataloader), leave=True, smoothing=1) as pbar:
             pbar.set_description('Epoch {}'.format(epoch))
 
             for i, (img, bboxes, classes) in enumerate(dataloader):
-                img = autograd.Variable(img)
-                bboxes = autograd.Variable(bboxes, requires_grad=False)
-                classes = autograd.Variable(classes, requires_grad=False)
-                img_id = autograd.Variable(torch.arange(0, img.size()[0]))
+                img = img.float()
+                bboxes = bboxes.detach()
+                classes = classes.detach()
+                img_id = torch.arange(0, img.size()[0])
 
                 rpn_cls_loss, rpn_reg_loss, rcnn_cls_loss, rcnn_reg_loss, acc = trainer(img, img_id, bboxes, classes)
-                loss = rpn_cls_loss + rpn_reg_loss * 10 + rcnn_cls_loss + rcnn_reg_loss * 1000
+                loss = rpn_cls_loss + rpn_reg_loss * 10 + rcnn_cls_loss + rcnn_reg_loss * 10
                 loss = torch.sum(loss)
                 loss.backward()
                 optimizer.step()
@@ -87,13 +84,10 @@ if __name__ == "__main__":
 
                 pbar.update()
 
-    faster_rcnn_predictor = nn.DataParallel(FasterRCNNPredictor(faster_rcnn)).cuda()
+        scheduler.step()
+        
+    return faster_rcnn
 
-    for i, (img, targets, classes) in enumerate(dataloader):
-        img = autograd.Variable(img)
-        targets = autograd.Variable(targets, requires_grad=False)
-        img_id = autograd.Variable(torch.arange(0, img.size()[0]))
 
-        nms_reg, nms_cls, rcnn_reg, rcnn_cls = faster_rcnn_predictor(img, img_id)
-
-        visualize_both(nms_reg, nms_cls, rcnn_reg, rcnn_cls, img, color_map)
+if __name__ == "__main__":
+    train()

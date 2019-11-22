@@ -22,7 +22,7 @@ class RCNN(nn.Module):
         )
 
         self.reg = nn.Linear(num_channels, 4)
-        self.cls = nn.Linear(num_channels, num_classes)
+        self.cls = nn.Linear(num_channels, num_classes + 1)
 
     def forward(self, x):
         """

@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from scipy.misc import imshow
+import matplotlib.pyplot as plt
 from torch.nn import functional as F
 
 top = 0
@@ -41,12 +41,12 @@ def calculate_iou(bbox_a, bbox_b):
 
 
 def img_to_np(img):
-    img = img.data.cpu().numpy()
+    img = img.cpu().numpy()
     img = np.copy(img)
     img = np.swapaxes(img, 0, 1)
     img = np.swapaxes(img, 1, 2)
 
-    return img
+    return img.astype(np.int)
 
 
 def draw_bbox(img, bbox, color, mode='replace'):
@@ -87,4 +87,5 @@ def visualize_both(nms_reg, nms_cls, rcnn_reg, rcnn_cls, img, color_map):
                 np_img = draw_bbox(np_img, torch.round(r).long(), [1, 0, 0])
                 np_img = draw_bbox(np_img, torch.round(rcnn_r).long(), np.array(cls_color)/255)
 
-        imshow(np_img)
+        plt.imshow(np_img)
+        plt.show()

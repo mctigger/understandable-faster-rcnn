@@ -11,10 +11,7 @@ class CNN(nn.Module):
     """
     def __init__(self):
         super(CNN, self).__init__()
-        self.base = models.resnet50(pretrained=True)
-
-        for param in self.base.parameters():
-            param.requires_grad = False
+        self.base = models.resnet50(pretrained=False)
 
     def forward(self, x):
         x = self.base.conv1(x)
