@@ -1,3 +1,6 @@
+# WIP
+May not work correctly yet.
+
 ## Installation
 1. Install anaconda with Python 3.6
 2. Run `conda env create -f environment.yaml` to create a new conda environment with the required dependencies and then activate the environment with `source activate understandable-faster-rcnn`
