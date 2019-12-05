@@ -11,7 +11,7 @@ class CNN(nn.Module):
     """
     def __init__(self):
         super(CNN, self).__init__()
-        self.base = models.resnet50(pretrained=False)
+        self.base = models.resnet50(pretrained=True)
 
     def forward(self, x):
         x = self.base.conv1(x)
@@ -22,6 +22,6 @@ class CNN(nn.Module):
         x = self.base.layer1(x)
         x = self.base.layer2(x)
         x = self.base.layer3(x)
-        #x = self.base.layer4(x)
+        x = self.base.layer4(x)
 
         return x

@@ -10,12 +10,15 @@ from sklearn.preprocessing import LabelEncoder
 import helper
 
 
+HEIGHT = 600
+WIDTH = 800
+
 class CocoDataset(CocoDetection):
     def __init__(self, root, annFile, transform=None, target_transform=None):
         super(CocoDataset, self).__init__(root, annFile, transform, target_transform)
 
-        self.transforms = Compose([
-            Resize((240, 320)),
+        self.transforms_ = Compose([
+            Resize((HEIGHT, WIDTH)),
             ToTensor()
         ])
 
@@ -29,8 +32,8 @@ class CocoDataset(CocoDetection):
 
         image = item[0]
         width, height = image.size
-        x_factor = 320/width
-        y_factor = 240/height
+        x_factor = WIDTH/width
+        y_factor = HEIGHT/height
 
         bboxes = []
         classes = []
@@ -38,19 +41,32 @@ class CocoDataset(CocoDetection):
         for instance in item[1]:
             x, y, width, height = instance['bbox']
 
-            bboxes.append((y*y_factor, x*x_factor, (y+height)*y_factor, (x+width)*x_factor))
-            classes.append(instance['category_id'])
+            bboxes.append(torch.FloatTensor([y*y_factor, x*x_factor, (y+height)*y_factor, (x+width)*x_factor]))
+            classes.append(torch.LongTensor(self.le.transform([instance['category_id']])))
 
-        for i in range(100 - len(item[1])):
-            while True:
-                bboxes.append([0, 0, 0, 0])
-                classes.append(1)
+        image = self.transforms_(image)
 
-                break
+        return image, bboxes, classes
 
-        image = self.transforms(image)
 
-        return image, torch.FloatTensor(bboxes), torch.LongTensor(self.le.transform(classes))
+def detection_collate(batch):
+    batch_img = []
+    batch_bboxes = []
+    batch_classes = []
+
+    max_num_object = max([len(bboxes) for img, bboxes, classes in batch])
+
+    for img, bboxes, classes in batch:
+        batch_img.append(img)
+        batch_bboxes.append(torch.stack(bboxes + [torch.FloatTensor([0, 0, 0, 0])]*(max_num_object - len(bboxes)), dim=0))
+        batch_classes.append(torch.cat(classes + [torch.LongTensor([0])]*(max_num_object - len(bboxes)), dim=0))
+    
+    batch_img = torch.stack(batch_img, 0)
+    batch_bboxes = torch.stack(batch_bboxes, 0)
+    batch_classes = torch.stack(batch_classes, 0)
+
+    return batch_img, batch_bboxes, batch_classes
+
 
 
 if __name__ == "__main__":

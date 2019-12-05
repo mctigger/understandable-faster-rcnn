@@ -97,17 +97,17 @@ class RCNNTrainer(nn.Module):
             masked_reg = rcnn_reg.view(-1, 4)[mask_positive, :][:self.rois_per_image*batch_size * 1 // 4]
             masked_nms_reg = nms_reg.view(-1, 4)[mask_positive, :][:self.rois_per_image*batch_size * 1 // 4]
 
-            rounded_masked_bboxes = torch.round(masked_nms_reg * self.reduction) // self.reduction
+            rounded_masked_bboxes = torch.cat([torch.floor(masked_nms_reg[:, [0, 1]] * self.reduction), torch.ceil(masked_nms_reg[:, [2, 3]] * self.reduction)], dim=1) / self.reduction
 
             roi_height = torch.abs(rounded_masked_bboxes[:, bottom] - rounded_masked_bboxes[:, top])
             roi_width = torch.abs(rounded_masked_bboxes[:, right] - rounded_masked_bboxes[:, left])
 
-            reg_loss += self.reg_criterion(masked_reg[:, top], (masked_bboxes[:, top] - rounded_masked_bboxes[:, top]) / roi_height)
-            reg_loss += self.reg_criterion(masked_reg[:, left], (masked_bboxes[:, left] - rounded_masked_bboxes[:, left]) / roi_width)
-            reg_loss += self.reg_criterion(masked_reg[:, bottom], (masked_bboxes[:, bottom] - rounded_masked_bboxes[:, bottom]) / roi_height)
-            reg_loss += self.reg_criterion(masked_reg[:, right], (masked_bboxes[:, right] - rounded_masked_bboxes[:, right]) / roi_width)
+            reg_loss += self.reg_criterion(masked_reg[:, top], (masked_bboxes[:, top] - rounded_masked_bboxes[:, top]))
+            reg_loss += self.reg_criterion(masked_reg[:, left], (masked_bboxes[:, left] - rounded_masked_bboxes[:, left]))
+            reg_loss += self.reg_criterion(masked_reg[:, bottom], (masked_bboxes[:, bottom] - rounded_masked_bboxes[:, bottom]))
+            reg_loss += self.reg_criterion(masked_reg[:, right], (masked_bboxes[:, right] - rounded_masked_bboxes[:, right]))
 
-        return cls_loss, reg_loss, accuracy
+        return cls_loss, reg_loss / 4, accuracy
 
 
 class RPNTrainer(nn.Module):
@@ -125,11 +125,18 @@ class RPNTrainer(nn.Module):
 
         targets = targets.view(-1, 4)
 
-        anchors_expanded = torch.unsqueeze(anchors, dim=0).expand(targets.size()[0], anchors.size()[0],
-                                                                  anchors.size()[1])
+        anchors_expanded = torch.unsqueeze(anchors, dim=0).expand(
+            targets.size()[0],
+            anchors.size()[0],
+            anchors.size()[1]
+        )
         anchors_expanded = anchors_expanded.contiguous().view(-1, 4)
 
-        targets_expanded = torch.unsqueeze(targets, dim=1).expand(targets.size()[0], anchors.size()[0], 4)
+        targets_expanded = torch.unsqueeze(targets, dim=1).expand(
+            targets.size()[0],
+            anchors.size()[0],
+            4
+        )
         targets_expanded = targets_expanded.contiguous().view(-1, 4)
 
         iou = helper.calculate_iou(anchors_expanded, targets_expanded)

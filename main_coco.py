@@ -5,10 +5,11 @@ import torch
 from torch import autograd, nn, optim, utils
 
 import torchvision.transforms as transforms
+
 from tqdm import tqdm
-from dataset_test import Dataset, color_map
+from dataset_coco import CocoDataset, detection_collate
 from lib.faster_rcnn_efficient import FasterRCNN
-from lib.predictor_efficient import FasterRCNNPredictor
+from lib.predictor import FasterRCNNPredictor
 from lib.trainer_efficient import FasterRCNNTrainer
 
 top = 0
@@ -18,18 +19,19 @@ right = 3
 
 def train():
     baseline_boxes = [
+        (1, 1),
         (2, 1),
         (1, 2)
     ]
 
-    scales = [32, 64]
+    scales = [64, 128, 256, 512]
 
     anchor_boxes = [(bbox[0] * scale, bbox[1] * scale) for bbox, scale in itertools.product(baseline_boxes, scales)]
 
-    faster_rcnn = FasterRCNN(num_classes=3, anchor_boxes=anchor_boxes, n_proposals=200)
+    faster_rcnn = FasterRCNN(num_classes=81, anchor_boxes=anchor_boxes, n_proposals=2000)
 
-    dataset = Dataset(transforms.Compose([transforms.ToTensor()]), min_bboxes=0, max_bboxes=7)
-    dataloader = utils.data.DataLoader(dataset, batch_size=32, num_workers=12, shuffle=True)
+    dataset = CocoDataset("data/coco/train2017", "data/coco/annotations/instances_train2017.json")
+    dataloader = utils.data.DataLoader(dataset, batch_size=8, num_workers=12, shuffle=True, collate_fn=detection_collate)
 
     params = [param for param in faster_rcnn.parameters() if param.requires_grad]
     optimizer = optim.Adam(params, lr=1e-4, weight_decay=1e-4)
@@ -39,7 +41,7 @@ def train():
         faster_rcnn
     )).cuda()
 
-    for epoch in range(20):
+    for epoch in range(1):
         losses = []
         rpn_cls_losses = []
         rpn_reg_losses = []
@@ -58,7 +60,7 @@ def train():
 
                 rpn_cls_loss, rpn_reg_loss, rcnn_cls_loss, rcnn_reg_loss, acc, offset = trainer(img, bboxes, classes)
                 loss = rpn_cls_loss + rpn_reg_loss * 10 + rcnn_cls_loss + rcnn_reg_loss * 10
-                loss = torch.sum(loss)
+                loss = torch.mean(loss)
                 loss.backward()
                 optimizer.step()
                 optimizer.zero_grad()
@@ -85,7 +87,7 @@ def train():
 
         scheduler.step()
         
-    return faster_rcnn
+    return faster_rcnn, dataset
 
 
 if __name__ == "__main__":

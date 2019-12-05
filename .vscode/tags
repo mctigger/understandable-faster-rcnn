@@ -1,0 +1,101 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+AnchorGenerator	../modules/anchor_generator.py	/^class AnchorGenerator(nn.Module):$/;"	kind:class	line:6
+CNN	../modules/cnn_base.py	/^class CNN(nn.Module):$/;"	kind:class	line:5
+CategoricalAccuracy	../metrics.py	/^class CategoricalAccuracy(torch.nn.Module):$/;"	kind:class	line:4
+CocoDataset	../dataset_coco.py	/^class CocoDataset(CocoDetection):$/;"	kind:class	line:13
+Dataset	../dataset_test.py	/^class Dataset(data.Dataset):$/;"	kind:class	line:19
+FasterRCNN	../modules/faster_rcnn.py	/^class FasterRCNN(nn.Module):$/;"	kind:class	line:15
+FasterRCNNPredictor	../modules/predictor.py	/^class FasterRCNNPredictor(nn.Module):$/;"	kind:class	line:12
+FasterRCNNTrainer	../modules/trainer.py	/^class FasterRCNNTrainer(nn.Module):$/;"	kind:class	line:13
+RCNN	../modules/rcnn.py	/^class RCNN(nn.Module):$/;"	kind:class	line:4
+RCNNTrainer	../modules/trainer.py	/^class RCNNTrainer(nn.Module):$/;"	kind:class	line:30
+RPN	../modules/rpn.py	/^class RPN(nn.Module):$/;"	kind:class	line:4
+RPNTrainer	../modules/trainer.py	/^class RPNTrainer(nn.Module):$/;"	kind:class	line:113
+RoiPooling	../modules/roi_pooling.py	/^class RoiPooling:$/;"	kind:class	line:2
+SlidingWindow	../modules/sliding_window.py	/^class SlidingWindow(nn.Module):$/;"	kind:class	line:5
+__getitem__	../dataset_coco.py	/^    def __getitem__(self, index):$/;"	kind:member	line:27
+__getitem__	../dataset_test.py	/^    def __getitem__(self, index):$/;"	kind:member	line:27
+__init__	../dataset_coco.py	/^    def __init__(self, root, annFile, transform=None, target_transform=None):$/;"	kind:member	line:14
+__init__	../dataset_test.py	/^    def __init__(self, transform):$/;"	kind:member	line:20
+__init__	../metrics.py	/^    def __init__(self, top_k=1):$/;"	kind:member	line:5
+__init__	../modules/anchor_generator.py	/^    def __init__(self, boxes, window_size):$/;"	kind:member	line:7
+__init__	../modules/cnn_base.py	/^    def __init__(self):$/;"	kind:member	line:12
+__init__	../modules/faster_rcnn.py	/^    def __init__(self, num_classes, anchor_boxes):$/;"	kind:member	line:16
+__init__	../modules/predictor.py	/^    def __init__(self, faster_rcnn):$/;"	kind:member	line:13
+__init__	../modules/rcnn.py	/^    def __init__(self, in_channels, num_classes, in_size=(7, 7), num_channels=1024):$/;"	kind:member	line:8
+__init__	../modules/roi_pooling.py	/^    def __init__(self, output_size, reduction):$/;"	kind:member	line:3
+__init__	../modules/rpn.py	/^    def __init__(self, in_channels, k, window_size):$/;"	kind:member	line:8
+__init__	../modules/sliding_window.py	/^    def __init__(self, window_size, stride):$/;"	kind:member	line:11
+__init__	../modules/trainer.py	/^    def __init__(self):$/;"	kind:member	line:114
+__init__	../modules/trainer.py	/^    def __init__(self, faster_rcnn):$/;"	kind:member	line:14
+__init__	../modules/trainer.py	/^    def __init__(self, reduction):$/;"	kind:member	line:31
+__init__.py	../modules/__init__.py	1;"	kind:file	line:1
+__len__	../dataset_test.py	/^    def __len__(self):$/;"	kind:member	line:24
+_compile	../setup.py	/^    def _compile(obj, src, ext, cc_args, extra_postargs, pp_opts):$/;"	kind:function	line:91
+anchor_generator.py	../modules/anchor_generator.py	1;"	kind:file	line:1
+bottom	../helper.py	/^bottom = 2$/;"	kind:variable	line:8
+bottom	../main.py	/^bottom = 2$/;"	kind:variable	line:18
+bottom	../modules/predictor.py	/^bottom = 2$/;"	kind:variable	line:8
+bottom	../modules/trainer.py	/^bottom = 2$/;"	kind:variable	line:9
+build_extensions	../setup.py	/^    def build_extensions(self):$/;"	kind:member	line:112
+calculate_iou	../helper.py	/^def calculate_iou(bbox_a, bbox_b):$/;"	kind:function	line:12
+cmdclass	../setup.py	/^    cmdclass={'build_ext': custom_build_ext},$/;"	kind:variable	line:123
+cnn_base.py	../modules/cnn_base.py	1;"	kind:file	line:1
+color_map	../dataset_test.py	/^color_map = {$/;"	kind:variable	line:8
+custom_build_ext	../setup.py	/^class custom_build_ext(build_ext):$/;"	kind:class	line:111
+customize_compiler_for_nvcc	../setup.py	/^def customize_compiler_for_nvcc(self):$/;"	kind:function	line:72
+dataset	../dataset_coco.py	/^    dataset = CocoDataset('.\/data\/coco\/train2017', '.\/data\/coco\/annotations\/instances_train2017.json')$/;"	kind:variable	line:57
+dataset_coco.py	../dataset_coco.py	1;"	kind:file	line:1
+dataset_test.py	../dataset_test.py	1;"	kind:file	line:1
+draw_bbox	../helper.py	/^def draw_bbox(img, bbox, color, mode='replace'):$/;"	kind:function	line:52
+ext_modules	../setup.py	/^    ext_modules=ext_modules,$/;"	kind:variable	line:121
+ext_modules	../setup.py	/^ext_modules = []$/;"	kind:variable	line:117
+faster_rcnn.py	../modules/faster_rcnn.py	1;"	kind:file	line:1
+find_in_path	../setup.py	/^def find_in_path(name, path):$/;"	kind:function	line:20
+forward	../metrics.py	/^    def forward(self, pred, target):$/;"	kind:member	line:10
+forward	../modules/anchor_generator.py	/^    def forward(self, img, fm):$/;"	kind:member	line:12
+forward	../modules/cnn_base.py	/^    def forward(self, x):$/;"	kind:member	line:16
+forward	../modules/faster_rcnn.py	/^    def forward(self, img, img_id):$/;"	kind:member	line:30
+forward	../modules/predictor.py	/^    def forward(self, img, img_id):$/;"	kind:member	line:17
+forward	../modules/rcnn.py	/^    def forward(self, x):$/;"	kind:member	line:27
+forward	../modules/roi_pooling.py	/^    def forward(self, x):$/;"	kind:member	line:9
+forward	../modules/rpn.py	/^    def forward(self, x):$/;"	kind:member	line:29
+forward	../modules/sliding_window.py	/^    def forward(self, fm):$/;"	kind:member	line:21
+forward	../modules/trainer.py	/^    def forward(self, img, img_id, bboxes, classes):$/;"	kind:member	line:21
+forward	../modules/trainer.py	/^    def forward(self, nms_reg, nms_cls, rcnn_reg, rcnn_cls, bboxes, classes):$/;"	kind:member	line:41
+forward	../modules/trainer.py	/^    def forward(self, reg, cls, anchors, targets):$/;"	kind:member	line:120
+helper.py	../helper.py	1;"	kind:file	line:1
+image_size	../dataset_test.py	/^image_size = (256, 256)$/;"	kind:variable	line:16
+img_to_np	../helper.py	/^def img_to_np(img):$/;"	kind:function	line:43
+left	../helper.py	/^left = 1$/;"	kind:variable	line:7
+left	../main.py	/^left = 1$/;"	kind:variable	line:17
+left	../modules/predictor.py	/^left = 1$/;"	kind:variable	line:7
+left	../modules/trainer.py	/^left = 1$/;"	kind:variable	line:8
+main.py	../main.py	1;"	kind:file	line:1
+metrics.py	../metrics.py	1;"	kind:file	line:1
+name	../setup.py	/^    name='faster_rcnn',$/;"	kind:variable	line:120
+num_classes	../dataset_test.py	/^num_classes = 3$/;"	kind:variable	line:15
+numpy_include	../setup.py	/^    numpy_include = np.get_include()$/;"	kind:variable	line:67
+numpy_include	../setup.py	/^    numpy_include = np.get_numpy_include()$/;"	kind:variable	line:69
+predictor.py	../modules/predictor.py	1;"	kind:file	line:1
+rcnn.py	../modules/rcnn.py	1;"	kind:file	line:1
+right	../helper.py	/^right = 3$/;"	kind:variable	line:9
+right	../main.py	/^right = 3$/;"	kind:variable	line:19
+right	../modules/predictor.py	/^right = 3$/;"	kind:variable	line:9
+right	../modules/trainer.py	/^right = 3$/;"	kind:variable	line:10
+roi_pooling.py	../modules/roi_pooling.py	1;"	kind:file	line:1
+rpn.py	../modules/rpn.py	1;"	kind:file	line:1
+setup.py	../setup.py	1;"	kind:file	line:1
+sliding_window.py	../modules/sliding_window.py	1;"	kind:file	line:1
+top	../helper.py	/^top = 0$/;"	kind:variable	line:6
+top	../main.py	/^top = 0$/;"	kind:variable	line:16
+top	../modules/predictor.py	/^top = 0$/;"	kind:variable	line:6
+top	../modules/trainer.py	/^top = 0$/;"	kind:variable	line:7
+train	../main.py	/^def train():$/;"	kind:function	line:21
+trainer.py	../modules/trainer.py	1;"	kind:file	line:1
+visualize_both	../helper.py	/^def visualize_both(nms_reg, nms_cls, rcnn_reg, rcnn_cls, img, color_map):$/;"	kind:function	line:71

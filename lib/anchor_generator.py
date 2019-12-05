@@ -1,5 +1,6 @@
 import itertools
 
+import torch
 from torch import nn as nn, autograd as autograd
 
 
@@ -29,4 +30,4 @@ class AnchorGenerator(nn.Module):
 
                 anchors.append((anchor_top, anchor_left, anchor_bottom, anchor_right))
 
-        return autograd.Variable(fm.new(anchors), requires_grad=False)
+        return torch.tensor(anchors, requires_grad=False, dtype=torch.float, device=fm.device)
