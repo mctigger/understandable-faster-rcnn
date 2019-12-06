@@ -22,6 +22,6 @@ class CNN(nn.Module):
         x = self.base.layer1(x)
         x = self.base.layer2(x)
         x = self.base.layer3(x)
-        x = self.base.layer4(x)
+        #x = self.base.layer4(x)
 
         return x

@@ -7,7 +7,7 @@ from torch import autograd, nn, optim, utils
 import torchvision.transforms as transforms
 from tqdm import tqdm
 from dataset_test import Dataset, color_map
-from lib.faster_rcnn_efficient import FasterRCNN
+from lib.faster_rcnn_efficient import ProfilingFasterRCNN
 from lib.predictor_efficient import FasterRCNNPredictor
 from lib.trainer_efficient import FasterRCNNTrainer
 
@@ -26,7 +26,7 @@ def train():
 
     anchor_boxes = [(bbox[0] * scale, bbox[1] * scale) for bbox, scale in itertools.product(baseline_boxes, scales)]
 
-    faster_rcnn = FasterRCNN(num_classes=3, anchor_boxes=anchor_boxes, n_proposals=200)
+    faster_rcnn = ProfilingFasterRCNN(num_classes=3, anchor_boxes=anchor_boxes, n_proposals=300)
 
     dataset = Dataset(transforms.Compose([transforms.ToTensor()]), min_bboxes=0, max_bboxes=7)
     dataloader = utils.data.DataLoader(dataset, batch_size=32, num_workers=12, shuffle=True)
@@ -39,7 +39,7 @@ def train():
         faster_rcnn
     )).cuda()
 
-    for epoch in range(20):
+    for epoch in range(1):
         losses = []
         rpn_cls_losses = []
         rpn_reg_losses = []

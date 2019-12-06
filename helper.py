@@ -1,3 +1,7 @@
+import time
+import functools
+import collections
+
 import torch
 import numpy as np
 from matplotlib import patches, text
@@ -89,3 +93,30 @@ def visualize_rcnn(ax, rcnn_reg, rcnn_cls, color_map):
             cls_color = color_map[int(index)]
 
         add_bbox(ax, rcnn_r, color=cls_color, text="class={}: {:.2f}".format(index, cls))
+
+
+class GPURuntimeProfiler:
+    def __init__(self):
+        self.stats = collections.defaultdict(int)
+
+    def measure_gpu(self, name):
+        def decorator(f):
+            @functools.wraps(f)
+            def measure(*args, **kwargs):
+                torch.cuda.synchronize()
+                start = time.perf_counter()
+
+                result = f(*args, **kwargs)
+
+                torch.cuda.synchronize() # wait for mm to finish
+                end = time.perf_counter()
+
+                duration = end - start
+
+                self.stats[name] += duration
+
+                return result
+
+            return measure
+        
+        return decorator

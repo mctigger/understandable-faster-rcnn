@@ -31,7 +31,7 @@ def train():
     faster_rcnn = FasterRCNN(num_classes=81, anchor_boxes=anchor_boxes, n_proposals=2000)
 
     dataset = CocoDataset("data/coco/train2017", "data/coco/annotations/instances_train2017.json")
-    dataloader = utils.data.DataLoader(dataset, batch_size=8, num_workers=12, shuffle=True, collate_fn=detection_collate)
+    dataloader = utils.data.DataLoader(dataset, batch_size=16, num_workers=12, shuffle=True, collate_fn=detection_collate)
 
     params = [param for param in faster_rcnn.parameters() if param.requires_grad]
     optimizer = optim.Adam(params, lr=1e-4, weight_decay=1e-4)

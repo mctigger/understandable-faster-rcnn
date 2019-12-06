@@ -1,5 +1,6 @@
 /.idea
 /.ipynb_checkpoints
+/.vscode
 
 /data
 /roi_pooling

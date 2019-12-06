@@ -5,9 +5,11 @@ from torchvision.ops import RoIPool, batched_nms, nms
 
 from lib.anchor_generator import AnchorGenerator
 from lib.cnn_base import CNN
-from lib.rcnn import RCNN
+from lib.rcnn_efficient import RCNN
 from lib.rpn_efficient import RPN
 from lib.sliding_window import SlidingWindow
+
+from helper import GPURuntimeProfiler
 
 import timy
 
@@ -15,15 +17,14 @@ import timy
 class FasterRCNN(nn.Module):
     def __init__(self, num_classes, anchor_boxes, n_proposals):
         super(FasterRCNN, self).__init__()
-        fm_channels = 2048
+        fm_channels = 2048 // 2
         window_size = 3
-        self.reduction = 1/32
+        self.reduction = 1/16
         self.n_proposals = n_proposals
 
         self.cnn = CNN()
         self.rpn = RPN(fm_channels, len(anchor_boxes), window_size)
         self.rcnn = RCNN(fm_channels, num_classes)
-        self.sliding_window = SlidingWindow(window_size, stride=1)
         self.agn = AnchorGenerator(anchor_boxes, window_size)
         self.roi_pooling = RoIPool(output_size=(7, 7), spatial_scale=self.reduction)
 
@@ -166,7 +167,7 @@ class FasterRCNN(nn.Module):
 
         return rcnn_reg, rcnn_cls
 
-    def forward(self, img, img_id):
+    def forward(self, img):
         
         # 1. Apply CNN base for feature extraction
         feature_maps = self.forward_backbone(img)
@@ -189,3 +190,41 @@ class FasterRCNN(nn.Module):
         rcnn_reg, rcnn_cls = self.forward_rcnn(rois)
 
         return rpn_reg, rpn_cls, nms_reg, nms_cls, rcnn_reg, rcnn_cls, anchors
+
+
+profiler = GPURuntimeProfiler()
+
+
+class ProfilingFasterRCNN(FasterRCNN):
+    """
+    This class is like a wrapper around the FasterRCNN base class.
+    Every method is decorated with a profiling method that measures the gpu time
+    that a method uses.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
+    @profiler.measure_gpu('forward_backbone')
+    def forward_backbone(self, *args, **kwargs):
+        return super().forward_backbone(*args, **kwargs)
+
+    @profiler.measure_gpu('forward_rpn')
+    def forward_rpn(self, *args, **kwargs):
+        return super().forward_rpn(*args, **kwargs)
+
+    @profiler.measure_gpu('forward_nms')
+    def forward_nms(self, *args, **kwargs):
+        return super().forward_nms(*args, **kwargs)
+
+    @profiler.measure_gpu('forward_roi_pooling')
+    def forward_roi_pooling(self, *args, **kwargs):
+        return super().forward_roi_pooling(*args, **kwargs)
+
+    @profiler.measure_gpu('forward_rcnn')
+    def forward_rcnn(self, *args, **kwargs):
+        return super().forward_rcnn(*args, **kwargs)
+
+    @profiler.measure_gpu('forward')
+    def forward(self, *args, **kwargs):
+        return super().forward(*args, **kwargs)
