@@ -7,7 +7,7 @@ from torch import autograd, nn, optim, utils
 import torchvision.transforms as transforms
 from tqdm import tqdm
 from dataset_test import Dataset, color_map
-from lib.faster_rcnn_efficient import ProfilingFasterRCNN
+from lib.faster_rcnn_profiling import ProfilingFasterRCNN
 from lib.predictor_efficient import FasterRCNNPredictor
 from lib.trainer_efficient import FasterRCNNTrainer
 

@@ -4,6 +4,10 @@ from torch import nn as nn, autograd as autograd
 import helper
 from metrics import CategoricalAccuracy
 
+from helper import GPURuntimeProfiler
+
+profiler = GPURuntimeProfiler()
+
 top = 0
 left = 1
 bottom = 2
@@ -50,6 +54,7 @@ class RCNNTrainer(nn.Module):
 
         self.rois_per_image = 64
 
+    @profiler.measure_gpu('forward_rcnn_trainer')
     def forward(self, nms_reg, nms_cls, feature_maps, bboxes, classes):
         batch_size = bboxes.shape[0]
         num_targets = bboxes.shape[1]
@@ -142,6 +147,7 @@ class RPNTrainer(nn.Module):
         self.reg_criterion = nn.SmoothL1Loss()
         self.cls_criterion = nn.BCEWithLogitsLoss()
 
+    @profiler.measure_gpu('forward_rpn_trainer_match_target_to_anchor')
     def match_target_to_anchor(self, anchors, targets, iou_threshold=0.5):
         batch_size = targets.size()[0]
         num_targets = targets.size()[1]
@@ -178,6 +184,8 @@ class RPNTrainer(nn.Module):
 
         return masked_anchor, masked_targets, mask  
 
+    
+    @profiler.measure_gpu('forward_rpn_trainer')
     def forward(self, reg, cls, anchors, targets):
         anchors_matched, targets_matched, mask_matched = self.match_target_to_anchor(anchors, targets, iou_threshold=0.5)
 
